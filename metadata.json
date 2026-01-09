@@ -1,0 +1,5 @@
+{
+  "name": "PriceRichFlavour",
+  "description": "An AI-powered chatbot that processes Excel price lists, allowing users to browse brands and query product prices through an interactive chat interface.",
+  "requestFramePermissions": []
+}
