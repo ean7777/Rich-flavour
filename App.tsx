@@ -26,7 +26,6 @@ const queryGemini = async (
   products: Product[], 
   history: { role: MessageRole; content: string }[] = []
 ): Promise<string> => {
-  // Получаем API ключ из переменных окружения
   const apiKey = process.env.API_KEY;
   if (!apiKey || apiKey === "undefined") {
     return "Системная ошибка: API ключ не настроен. Пожалуйста, установите переменную API_KEY в панели управления Netlify.";
@@ -35,7 +34,6 @@ const queryGemini = async (
   const ai = new GoogleGenAI({ apiKey });
   
   const q = prompt.toLowerCase();
-  // Поиск релевантных товаров (умный фильтр)
   const matches = products.filter(p => 
     p.brand.toLowerCase().includes(q) || 
     p.name.toLowerCase().includes(q) ||
@@ -154,7 +152,6 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  // Уникальные бренды для быстрых кнопок
   const brands = Array.from(new Set(products.map(p => p.brand))).filter(b => b !== 'N/A').slice(0, 15);
 
   useEffect(() => {
@@ -182,7 +179,6 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-950/20">
-      {/* Быстрые бренды */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-white/5 bg-slate-900/20">
         {brands.map(b => (
           <button 
@@ -195,7 +191,6 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
         ))}
       </div>
 
-      {/* Сообщения */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar chat-scroll">
         {messages.map(m => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
@@ -222,7 +217,6 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
         )}
       </div>
 
-      {/* Ввод */}
       <div className="p-4 bg-slate-950/80 border-t border-white/5 backdrop-blur-xl">
         <form onSubmit={e => { e.preventDefault(); onSend(input); }} className="flex gap-2 bg-slate-800/50 rounded-2xl px-4 py-1 items-center border border-white/5 focus-within:border-[#D4AF37]/30 transition-all shadow-inner">
           <Search size={18} className="text-slate-600" />
@@ -250,7 +244,7 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('rf_inventory_v4');
+    const saved = localStorage.getItem('rf_inventory_v5');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
@@ -263,21 +257,19 @@ const App: React.FC = () => {
 
   const handleData = (data: Product[]) => {
     setProducts(data);
-    localStorage.setItem('rf_inventory_v4', JSON.stringify(data));
+    localStorage.setItem('rf_inventory_v5', JSON.stringify(data));
   };
 
   const clearData = () => {
     if (confirm("Вы уверены, что хотите удалить текущую базу данных?")) {
       setProducts([]);
-      localStorage.removeItem('rf_inventory_v4');
+      localStorage.removeItem('rf_inventory_v5');
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#020617] p-0 sm:p-4 w-full">
       <div className="w-full max-w-md h-screen sm:h-[850px] bg-slate-950 flex flex-col shadow-2xl relative sm:rounded-[3rem] overflow-hidden border border-slate-800/50">
-        
-        {/* Хедер */}
         <header className="px-6 py-5 flex justify-between items-center bg-slate-950/50 backdrop-blur-md border-b border-white/5 z-20">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold tracking-[0.3em] text-[#D4AF37] uppercase">Concierge Service</span>
@@ -292,7 +284,6 @@ const App: React.FC = () => {
           )}
         </header>
 
-        {/* Основной контент */}
         <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900">
           {products.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
@@ -304,12 +295,10 @@ const App: React.FC = () => {
               </div>
               <h2 className="text-2xl font-light text-white mb-3">Добро пожаловать</h2>
               <p className="text-slate-500 text-sm mb-12 leading-relaxed max-w-[240px]">Загрузите ваш прайс-лист Excel, чтобы активировать интеллект консьержа.</p>
-              
               <ExcelUploader onDataLoaded={handleData} />
-              
               <div className="mt-16 flex items-center gap-2 text-[10px] text-slate-600 uppercase tracking-widest font-bold">
                 <ShieldCheck size={12} className="text-[#D4AF37]" />
-                Secure Engine v1.2
+                Secure Engine v1.3
               </div>
             </div>
           ) : (
