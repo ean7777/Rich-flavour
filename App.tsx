@@ -111,7 +111,9 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
 
     try {
       const apiKey = process.env.API_KEY;
-      if (!apiKey) throw new Error("No Key");
+      if (!apiKey || apiKey === "undefined") {
+        throw new Error("API_KEY is missing in environment variables");
+      }
 
       const ai = new GoogleGenAI({ apiKey });
       const q = text.toLowerCase();
@@ -135,7 +137,7 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
           { role: 'user', parts: [{ text: text }] }
         ],
         config: { 
-          systemInstruction: `Ты консьерж RICH FLAVOUR. Отвечай кратко на основе прайса: \n${context}\n Бренды пиши ЖИРНЫМ.`, 
+          systemInstruction: `Ты консьерж RICH FLAVOUR. Отвечай кратко на основе прайса: \n${context}\n Бренды пиши ЖИРНЫМ. Если инфо нет - извинись.`, 
           temperature: 0.2 
         }
       });
@@ -147,7 +149,13 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
         timestamp: new Date() 
       }]);
     } catch (err) {
-      setMessages(prev => [...prev, { id: 'err', role: 'assistant', content: 'Ошибка связи.', timestamp: new Date() }]);
+      console.error(err);
+      setMessages(prev => [...prev, { 
+        id: 'err', 
+        role: 'assistant', 
+        content: 'Ошибка конфигурации ИИ. Пожалуйста, проверьте API ключ.', 
+        timestamp: new Date() 
+      }]);
     } finally {
       setLoading(false);
     }
@@ -176,7 +184,7 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
             </div>
           </div>
         ))}
-        {loading && <div className="text-[10px] text-slate-500 animate-pulse font-bold uppercase tracking-[0.2em] pl-2">Обработка...</div>}
+        {loading && <div className="text-[10px] text-slate-500 animate-pulse font-bold uppercase tracking-[0.2em] pl-2">Поиск в базе...</div>}
       </div>
 
       <div className="p-4 bg-slate-950 border-t border-white/5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
@@ -197,7 +205,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('rf_v20');
+      const saved = localStorage.getItem('rf_v21');
       if (saved) setProducts(JSON.parse(saved));
     } catch (e) {}
     setReady(true);
@@ -213,7 +221,7 @@ export default function App() {
           <h1 className="text-xl font-black tracking-tight text-white leading-none mt-1 uppercase">Rich <span className="text-[#D4AF37]">Flavour</span></h1>
         </div>
         {products.length > 0 && (
-          <button onClick={() => { if(confirm("Очистить?")){ setProducts([]); localStorage.removeItem('rf_v20'); } }} className="p-2 text-slate-600 hover:text-red-500 transition-colors">
+          <button onClick={() => { if(confirm("Очистить базу?")){ setProducts([]); localStorage.removeItem('rf_v21'); } }} className="p-2 text-slate-600 hover:text-red-500 transition-colors">
             <Trash2 size={20} />
           </button>
         )}
@@ -228,12 +236,12 @@ export default function App() {
                 <Sparkles className="text-[#D4AF37]" size={48} />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-3">Готов к работе</h2>
-            <p className="text-slate-500 text-sm mb-12 max-w-[280px]">Загрузите Excel-прайс для активации бота.</p>
-            <ExcelUploader onDataLoaded={(d) => { setProducts(d); localStorage.setItem('rf_v20', JSON.stringify(d)); }} />
+            <h2 className="text-2xl font-bold text-white mb-3">База не загружена</h2>
+            <p className="text-slate-500 text-sm mb-12 max-w-[280px]">Загрузите Excel-прайс, чтобы чат-бот начал работу.</p>
+            <ExcelUploader onDataLoaded={(d) => { setProducts(d); localStorage.setItem('rf_v21', JSON.stringify(d)); }} />
             <div className="mt-20 flex items-center gap-2 text-[10px] text-slate-800 uppercase tracking-widest font-black">
               <ShieldCheck size={14} className="opacity-30" />
-              RF Engine v3.0
+              RF Engine v3.1
             </div>
           </div>
         ) : (
