@@ -22,7 +22,13 @@ const App: React.FC = () => {
     if (savedRate) setUsdRate(Number(savedRate));
     if (savedMarkup) setMarkup(Number(savedMarkup));
     if (savedWa) setWaNumber(savedWa);
-    if (savedProducts) setRawProducts(JSON.parse(savedProducts));
+    if (savedProducts) {
+      try {
+        setRawProducts(JSON.parse(savedProducts));
+      } catch (e) {
+        console.error("Failed to parse stored products", e);
+      }
+    }
   }, []);
 
   const saveSettings = () => {
