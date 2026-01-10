@@ -2,70 +2,84 @@ import React, { useState, useEffect } from 'react';
 import { SmartChatBot } from './components/SmartChatBot';
 import { ExcelUploader } from './components/ExcelUploader';
 import { Product } from './types';
-import { Sparkles, Trash2, RefreshCw } from 'lucide-react';
+import { Sparkles, Trash2, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('rf_data_simple');
+    const saved = localStorage.getItem('rich_flavour_inventory');
     if (saved) {
       try {
         setProducts(JSON.parse(saved));
       } catch (e) {
-        console.error("Local storage parse error", e);
+        console.error("Storage error", e);
       }
     }
   }, []);
 
   const handleData = (data: Product[]) => {
     setProducts(data);
-    localStorage.setItem('rf_data_simple', JSON.stringify(data));
+    localStorage.setItem('rich_flavour_inventory', JSON.stringify(data));
   };
 
-  const clearDatabase = () => {
-    if (confirm("Вы уверены, что хотите удалить все данные?")) {
+  const resetBase = () => {
+    if (window.confirm("Удалить текущий прайс-лист?")) {
       setProducts([]);
-      localStorage.removeItem('rf_data_simple');
+      localStorage.removeItem('rich_flavour_inventory');
     }
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-2xl relative overflow-hidden">
-      <header className="bg-white border-b p-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <h1 className="text-xl font-black tracking-tighter">RICH <span className="text-blue-600">BOT</span></h1>
-        </div>
-        {products.length > 0 && (
-          <button 
-            onClick={clearDatabase}
-            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-            title="Очистить базу"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
-        )}
-      </header>
-
-      <main className="flex-1 flex flex-col bg-white overflow-hidden">
-        {products.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-              <RefreshCw className="w-10 h-10 text-slate-300" />
+    <div className="flex items-center justify-center min-h-screen bg-[#020617] p-0 sm:p-4">
+      <div className="w-full max-w-md h-screen sm:h-[850px] bg-slate-950 flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] relative sm:rounded-[3rem] overflow-hidden border border-slate-800/50">
+        
+        {/* Header */}
+        <header className="px-6 py-5 flex justify-between items-center bg-slate-950/50 backdrop-blur-md border-b border-white/5 z-20">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold tracking-[0.3em] text-[#D4AF37] uppercase">Concierge Service</span>
             </div>
-            <h2 className="text-2xl font-bold mb-2">Прайс не загружен</h2>
-            <p className="text-slate-500 text-sm mb-8">Загрузите Excel файл, чтобы бот мог отвечать на вопросы о наличии и ценах.</p>
-            <ExcelUploader onDataLoaded={handleData} />
+            <h1 className="text-xl font-extrabold tracking-tighter text-white">
+              RICH <span className="text-[#D4AF37]">FLAVOUR</span>
+            </h1>
           </div>
-        ) : (
-          <div className="flex-1 overflow-hidden flex flex-col">
+          {products.length > 0 && (
+            <button 
+              onClick={resetBase}
+              className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-500 hover:text-red-400"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900">
+          {products.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+              <div className="w-24 h-24 mb-8 relative">
+                <div className="absolute inset-0 bg-[#D4AF37]/20 blur-2xl rounded-full animate-pulse"></div>
+                <div className="relative flex items-center justify-center w-full h-full border border-[#D4AF37]/30 rounded-full bg-slate-900">
+                  <Sparkles className="text-[#D4AF37]" size={40} />
+                </div>
+              </div>
+              <h2 className="text-2xl font-light text-white mb-3">Система не инициализирована</h2>
+              <p className="text-slate-400 text-sm mb-10 leading-relaxed font-light">
+                Пожалуйста, загрузите актуальный прайс-лист в формате Excel для активации ИИ-консультанта.
+              </p>
+              <ExcelUploader onDataLoaded={handleData} />
+              
+              <div className="mt-12 flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest">
+                <ShieldCheck size={12} className="text-[#D4AF37]" />
+                Secure Data Processing
+              </div>
+            </div>
+          ) : (
             <SmartChatBot products={products} />
-          </div>
-        )}
-      </main>
+          )}
+        </main>
+      </div>
     </div>
   );
 };

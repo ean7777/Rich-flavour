@@ -2,9 +2,7 @@ export interface Product {
   id: string;
   brand: string;
   name: string;
-  price: number | string;
-  category?: string;
-  [key: string]: any;
+  price: string;
 }
 
 export type MessageRole = 'user' | 'assistant';
