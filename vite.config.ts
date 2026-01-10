@@ -6,9 +6,6 @@ export default defineConfig({
   define: {
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
   },
-  resolve: {
-    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json']
-  },
   build: {
     outDir: 'dist',
     target: 'esnext'
