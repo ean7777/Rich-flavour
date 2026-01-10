@@ -47,6 +47,7 @@ const App: React.FC = () => {
             <button 
               onClick={resetBase}
               className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-500 hover:text-red-400"
+              aria-label="Очистить прайс-лист"
             >
               <Trash2 size={18} />
             </button>
