@@ -125,7 +125,7 @@ const App: React.FC = () => {
              </div>
              <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tighter">Ready to Start?</h2>
              <p className="text-slate-400 text-sm mb-12 max-w-[260px] leading-relaxed">Upload your fragrance price list to activate the AI butler</p>
-             <ExcelUploader onDataLoaded={(data) => { setRawProducts(data); localStorage.setItem('rf_data', JSON.stringify(data)); }} />
+             <ExcelUploader onDataLoaded={(data: Product[]) => { setRawProducts(data); localStorage.setItem('rf_data', JSON.stringify(data)); }} />
           </div>
         ) : (
           <div className="flex-1 flex flex-col h-full overflow-hidden">

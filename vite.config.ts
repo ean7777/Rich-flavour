@@ -1,3 +1,4 @@
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -11,6 +12,6 @@ export default defineConfig({
     target: 'esnext'
   },
   server: {
-    historyApiFallback: true
+    // Vite handles SPA routing by default in dev mode.
   }
 });
