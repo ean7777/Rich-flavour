@@ -20,16 +20,15 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-// --- СЕРВИС: ИИ ---
+// --- СЕРВИС: ИИ (GEMINI) ---
 const queryGemini = async (
   prompt: string, 
   products: Product[], 
   history: { role: MessageRole; content: string }[] = []
 ): Promise<string> => {
   const apiKey = process.env.API_KEY;
-  
   if (!apiKey || apiKey === "undefined") {
-    return "Ошибка конфигурации: API ключ не найден. Проверьте настройки Environment Variables в панели Netlify (ключ API_KEY).";
+    return "Системная ошибка: API_KEY не настроен в окружении проекта.";
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -78,11 +77,11 @@ const queryGemini = async (
     return response.text || "Извините, я не смог сформировать ответ. Попробуйте уточнить запрос.";
   } catch (err) {
     console.error("AI Error:", err);
-    return "Произошла техническая ошибка при связи с ИИ. Пожалуйста, попробуйте позже.";
+    return "Произошла техническая ошибка при связи с ИИ. Пожалуйста, проверьте настройки API ключа.";
   }
 };
 
-// --- КОМПОНЕНТ: ЗАГРУЗКА ---
+// --- КОМПОНЕНТ: ЗАГРУЗЧИК ---
 const ExcelUploader: React.FC<{ onDataLoaded: (data: Product[]) => void }> = ({ onDataLoaded }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -116,7 +115,7 @@ const ExcelUploader: React.FC<{ onDataLoaded: (data: Product[]) => void }> = ({ 
         setSuccess(true);
         setTimeout(() => { onDataLoaded(products); setLoading(false); }, 1000);
       } catch (err) {
-        alert("Ошибка при чтении файла. Убедитесь, что это Excel (.xlsx)");
+        alert("Ошибка при чтении файла. Используйте .xlsx");
         setLoading(false);
       }
     };
@@ -133,7 +132,7 @@ const ExcelUploader: React.FC<{ onDataLoaded: (data: Product[]) => void }> = ({ 
         <div className="flex flex-col items-center">
           <FileUp className="text-slate-600 mb-3" size={32} />
           <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Загрузить прайс-лист</span>
-          <span className="text-[9px] text-slate-700 mt-1 uppercase">Excel (xlsx, xls)</span>
+          <span className="text-[9px] text-slate-700 mt-1 uppercase">Excel (xlsx)</span>
         </div>
       )}
       <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFile} disabled={loading || success} />
@@ -141,12 +140,12 @@ const ExcelUploader: React.FC<{ onDataLoaded: (data: Product[]) => void }> = ({ 
   );
 };
 
-// --- КОМПОНЕНТ: ИНТЕРФЕЙС ЧАТА ---
+// --- КОМПОНЕНТ: ЧАТ ---
 const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([{ 
     id: 'welcome', 
     role: 'assistant', 
-    content: 'Приветствую. База данных успешно импортирована. Какой бренд или аромат вас интересует сегодня?', 
+    content: 'Приветствую. Я ознакомился с вашим каталогом. Какой бренд или аромат вас интересует сегодня?', 
     timestamp: new Date() 
   }]);
   const [input, setInput] = useState('');
@@ -213,7 +212,7 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
             <div className="w-8 h-8 rounded-full bg-slate-900 border border-[#D4AF37]/20 flex items-center justify-center">
               <Loader2 size={14} className="text-[#D4AF37] animate-spin" />
             </div>
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em]">Поиск в базе...</span>
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em]">Поиск по базе...</span>
           </div>
         )}
       </div>
@@ -245,30 +244,30 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('rf_inventory_v7');
+    const saved = localStorage.getItem('rf_inventory_v10');
     if (saved) {
-      try { setProducts(JSON.parse(saved)); } catch (e) {}
+      try { setProducts(JSON.parse(saved)); } catch (e) { console.error("Load error"); }
     }
   }, []);
 
   const handleData = (data: Product[]) => {
     setProducts(data);
-    localStorage.setItem('rf_inventory_v7', JSON.stringify(data));
+    localStorage.setItem('rf_inventory_v10', JSON.stringify(data));
   };
 
   const clearData = () => {
     if (confirm("Удалить текущую базу данных?")) {
       setProducts([]);
-      localStorage.removeItem('rf_inventory_v7');
+      localStorage.removeItem('rf_inventory_v10');
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#020617] p-0 sm:p-4 w-full">
+    <div className="flex items-center justify-center min-h-screen bg-[#020617] p-0 sm:p-4 w-full h-full">
       <div className="w-full max-w-md h-screen sm:h-[850px] bg-slate-950 flex flex-col shadow-2xl relative sm:rounded-[3rem] overflow-hidden border border-slate-800/50">
         <header className="px-6 py-5 flex justify-between items-center bg-slate-950/50 backdrop-blur-md border-b border-white/5 z-20">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold tracking-[0.3em] text-[#D4AF37] uppercase">Concierge AI</span>
+            <span className="text-[10px] font-bold tracking-[0.3em] text-[#D4AF37] uppercase">Concierge Service</span>
             <h1 className="text-xl font-extrabold tracking-tighter text-white">
               RICH <span className="text-[#D4AF37]">FLAVOUR</span>
             </h1>
@@ -294,7 +293,7 @@ const App: React.FC = () => {
               <ExcelUploader onDataLoaded={handleData} />
               <div className="mt-16 flex items-center gap-2 text-[10px] text-slate-600 uppercase tracking-widest font-bold">
                 <ShieldCheck size={12} className="text-[#D4AF37]" />
-                Secure Concierge Engine v1.5
+                Secure Concierge Engine v1.8
               </div>
             </div>
           ) : (
