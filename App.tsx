@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { SmartChatBot } from './components/SmartChatBot';
 import { ExcelUploader } from './components/ExcelUploader';
 import { Product } from './types';
-import { Sparkles, Trash2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Sparkles, Trash2, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const hasApiKey = !!process.env.API_KEY;
 
   useEffect(() => {
     const saved = localStorage.getItem('rich_flavour_inventory');
@@ -35,7 +34,6 @@ const App: React.FC = () => {
     <div className="flex items-center justify-center min-h-screen bg-[#020617] p-0 sm:p-4">
       <div className="w-full max-w-md h-screen sm:h-[850px] bg-slate-950 flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.8)] relative sm:rounded-[3rem] overflow-hidden border border-slate-800/50">
         
-        {/* Header */}
         <header className="px-6 py-5 flex justify-between items-center bg-slate-950/50 backdrop-blur-md border-b border-white/5 z-20">
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
@@ -55,15 +53,6 @@ const App: React.FC = () => {
           )}
         </header>
 
-        {/* API Key Alert if missing */}
-        {!hasApiKey && (
-          <div className="bg-red-500/10 border-b border-red-500/20 p-3 flex items-center gap-3 text-[11px] text-red-400">
-            <AlertCircle size={14} />
-            Ключ API не обнаружен в окружении. Бот будет работать в демо-режиме.
-          </div>
-        )}
-
-        {/* Content */}
         <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900">
           {products.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
