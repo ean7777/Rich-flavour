@@ -34,6 +34,7 @@ const ExcelUploader: React.FC<{ onDataLoaded: (data: Product[]) => void }> = ({ 
     reader.onload = (evt) => {
       try {
         const data = evt.target?.result;
+        if (!data) throw new Error("File read error");
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const json: any[] = XLSX.utils.sheet_to_json(sheet);
@@ -110,12 +111,13 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
 
     try {
       const apiKey = process.env.API_KEY;
-      if (!apiKey || apiKey === "undefined") throw new Error("API Key Missing");
+      if (!apiKey || apiKey === "undefined") {
+        throw new Error("API Key Missing");
+      }
 
       const ai = new GoogleGenAI({ apiKey });
       const q = text.toLowerCase();
       
-      // Поиск релевантных позиций в прайсе для контекста
       const matches = products.filter(p => 
         p.brand.toLowerCase().includes(q) || 
         p.name.toLowerCase().includes(q) ||
