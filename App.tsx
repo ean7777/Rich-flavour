@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { SmartChatBot } from './components/SmartChatBot.tsx';
-import { ExcelUploader } from './components/ExcelUploader.tsx';
-import { Product } from './types.ts';
+import { SmartChatBot } from './components/SmartChatBot';
+import { ExcelUploader } from './components/ExcelUploader';
+import { Product } from './types';
 import { Settings, Sparkles, X, Lock, Trash2, RefreshCw, Phone } from 'lucide-react';
 
 const App: React.FC = () => {
