@@ -29,7 +29,7 @@ const queryGemini = async (
   const apiKey = process.env.API_KEY;
   
   if (!apiKey || apiKey === "undefined") {
-    return "Ошибка конфигурации: API ключ не найден. Проверьте настройки Environment Variables в Netlify (ключ API_KEY).";
+    return "Ошибка конфигурации: API ключ не найден. Проверьте настройки Environment Variables в панели Netlify (ключ API_KEY).";
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -39,7 +39,7 @@ const queryGemini = async (
     p.brand.toLowerCase().includes(q) || 
     p.name.toLowerCase().includes(q) ||
     q.split(' ').some(word => word.length > 3 && (p.brand.toLowerCase().includes(word) || p.name.toLowerCase().includes(word)))
-  ).slice(0, 20);
+  ).slice(0, 30);
 
   const context = matches.length > 0 
     ? matches.map(p => `• БРЕНД: ${p.brand.toUpperCase()} | МОДЕЛЬ: ${p.name} | ЦЕНА: ${p.price}`).join('\n')
@@ -47,16 +47,17 @@ const queryGemini = async (
 
   const systemInstruction = `
     Ты — VIP-консьерж элитного парфюмерного дома "RICH FLAVOUR". 
-    Твоя задача: предоставлять информацию из прайс-листа.
+    Твоя задача: помогать клиентам находить информацию о товарах и ценах из прайс-листа.
     
-    ДАННЫЕ:
+    ДАННЫЕ ИЗ ТВОЕГО КАТАЛОГА:
     ${context}
     
-    ПРАВИЛА:
-    1. Будь предельно вежлив.
-    2. Используй только данные выше. Не придумывай цены.
-    3. Выделяй названия брендов жирным (**текст**).
-    4. Если позиции нет, предложи поискать другой аромат того же бренда.
+    ПРАВИЛА ОБЩЕНИЯ:
+    1. Отвечай кратко, профессионально и очень вежливо.
+    2. Используй только данные из предоставленного списка. Не придумывай цены.
+    3. Если товара нет, предложи ознакомиться с другими позициями того же бренда.
+    4. Выделяй названия брендов и ароматов жирным шрифтом (**текст**).
+    5. Если цена в списке "По запросу", так и пиши.
   `;
 
   try {
@@ -74,10 +75,10 @@ const queryGemini = async (
         temperature: 0.1 
       }
     });
-    return response.text || "Не удалось получить ответ от ИИ.";
+    return response.text || "Извините, я не смог сформировать ответ. Попробуйте уточнить запрос.";
   } catch (err) {
     console.error("AI Error:", err);
-    return "Произошла техническая ошибка при связи с ИИ.";
+    return "Произошла техническая ошибка при связи с ИИ. Пожалуйста, попробуйте позже.";
   }
 };
 
@@ -115,7 +116,7 @@ const ExcelUploader: React.FC<{ onDataLoaded: (data: Product[]) => void }> = ({ 
         setSuccess(true);
         setTimeout(() => { onDataLoaded(products); setLoading(false); }, 1000);
       } catch (err) {
-        alert("Ошибка чтения Excel");
+        alert("Ошибка при чтении файла. Убедитесь, что это Excel (.xlsx)");
         setLoading(false);
       }
     };
@@ -123,16 +124,17 @@ const ExcelUploader: React.FC<{ onDataLoaded: (data: Product[]) => void }> = ({ 
   };
 
   return (
-    <label className={`w-full max-w-[280px] h-32 flex flex-col items-center justify-center border-2 border-dashed rounded-[2rem] cursor-pointer transition-all duration-500 ${success ? 'border-green-500 bg-green-500/10' : 'border-slate-800 bg-slate-900/40 hover:border-[#D4AF37]/50 hover:bg-slate-800/40'}`}>
+    <label className={`w-full max-w-[300px] h-36 flex flex-col items-center justify-center border-2 border-dashed rounded-[2rem] cursor-pointer transition-all duration-500 ${success ? 'border-green-500 bg-green-500/10' : 'border-slate-800 bg-slate-900/40 hover:border-[#D4AF37]/50 hover:bg-slate-800/40'}`}>
       {loading ? (
         <Loader2 className="animate-spin text-[#D4AF37] w-8 h-8" />
       ) : success ? (
         <CheckCircle2 className="text-green-500 w-10 h-10 animate-bounce" />
       ) : (
-        <>
-          <FileUp className="text-slate-600 mb-2" size={24} />
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Загрузить прайс</span>
-        </>
+        <div className="flex flex-col items-center">
+          <FileUp className="text-slate-600 mb-3" size={32} />
+          <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Загрузить прайс-лист</span>
+          <span className="text-[9px] text-slate-700 mt-1 uppercase">Excel (xlsx, xls)</span>
+        </div>
       )}
       <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFile} disabled={loading || success} />
     </label>
@@ -144,14 +146,14 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([{ 
     id: 'welcome', 
     role: 'assistant', 
-    content: 'Приветствую. База данных готова. Что вас интересует?', 
+    content: 'Приветствую. База данных успешно импортирована. Какой бренд или аромат вас интересует сегодня?', 
     timestamp: new Date() 
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const brands = Array.from(new Set(products.map(p => p.brand))).filter(b => b !== 'N/A').slice(0, 10);
+  const brands = Array.from(new Set(products.map(p => p.brand))).filter(b => b !== 'N/A').slice(0, 15);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -177,40 +179,59 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-white/5">
+    <div className="flex flex-col h-full bg-slate-950/20">
+      <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-white/5 bg-slate-900/20">
         {brands.map(b => (
-          <button key={b} onClick={() => onSend(b)} className="px-3 py-1 rounded-full bg-slate-800 border border-white/5 text-[9px] text-slate-400 hover:text-[#D4AF37] uppercase font-bold whitespace-nowrap transition-colors">
+          <button 
+            key={b} 
+            onClick={() => onSend(b)} 
+            className="px-4 py-1.5 rounded-full bg-slate-800/80 border border-white/5 text-[10px] text-slate-400 hover:text-[#D4AF37] hover:border-[#D4AF37]/50 transition-all uppercase font-bold whitespace-nowrap"
+          >
             {b}
           </button>
         ))}
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar chat-scroll">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar chat-scroll">
         {messages.map(m => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-            <div className={`flex gap-2 max-w-[85%] ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border ${m.role === 'user' ? 'bg-slate-800 border-white/10' : 'bg-slate-900 border-[#D4AF37]/30'}`}>
-                {m.role === 'user' ? <User size={12} className="text-slate-400" /> : <Bot size={12} className="text-[#D4AF37]" />}
+            <div className={`flex gap-3 max-w-[85%] ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border ${m.role === 'user' ? 'bg-slate-800 border-white/10' : 'bg-slate-900 border-[#D4AF37]/30'}`}>
+                {m.role === 'user' ? <User size={14} className="text-slate-400" /> : <Bot size={14} className="text-[#D4AF37]" />}
               </div>
-              <div className={`p-3 rounded-xl text-[12px] leading-relaxed ${m.role === 'user' ? 'bg-slate-800 text-slate-100' : 'bg-slate-900 border border-white/5 text-slate-300'}`}>
+              <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-xl ${m.role === 'user' ? 'bg-slate-800 text-slate-100 rounded-tr-none' : 'bg-slate-900/90 border border-white/5 text-slate-300 rounded-tl-none'}`}>
                 <div className="whitespace-pre-wrap">{m.content}</div>
+                <div className="text-[8px] mt-2 opacity-30 text-right uppercase tracking-widest font-bold">
+                  {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
               </div>
             </div>
           </div>
         ))}
-        {loading && <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest pl-2">Поиск...</div>}
+        {loading && (
+          <div className="flex items-center gap-3 animate-pulse pl-2">
+            <div className="w-8 h-8 rounded-full bg-slate-900 border border-[#D4AF37]/20 flex items-center justify-center">
+              <Loader2 size={14} className="text-[#D4AF37] animate-spin" />
+            </div>
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em]">Поиск в базе...</span>
+          </div>
+        )}
       </div>
 
-      <div className="p-4 bg-slate-950 border-t border-white/5">
-        <form onSubmit={e => { e.preventDefault(); onSend(input); }} className="flex gap-2 bg-slate-800/50 rounded-xl px-3 py-1 items-center border border-white/5 focus-within:border-[#D4AF37]/50 transition-all">
+      <div className="p-4 bg-slate-950/80 border-t border-white/5 backdrop-blur-xl">
+        <form onSubmit={e => { e.preventDefault(); onSend(input); }} className="flex gap-2 bg-slate-800/50 rounded-2xl px-4 py-1 items-center border border-white/5 focus-within:border-[#D4AF37]/30 transition-all shadow-inner">
+          <Search size={18} className="text-slate-600" />
           <input 
             value={input} 
             onChange={e => setInput(e.target.value)} 
-            placeholder="Найти аромат..." 
-            className="flex-1 bg-transparent py-2 text-sm text-white outline-none placeholder:text-slate-700 font-light"
+            placeholder="Найти аромат или бренд..." 
+            className="flex-1 bg-transparent py-3 text-sm text-white outline-none placeholder:text-slate-700 font-light"
           />
-          <button type="submit" disabled={!input.trim() || loading} className="text-[#D4AF37] disabled:opacity-20">
+          <button 
+            type="submit" 
+            disabled={!input.trim() || loading} 
+            className="w-10 h-10 flex items-center justify-center bg-[#D4AF37] text-slate-950 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] disabled:opacity-20"
+          >
             <Send size={18} />
           </button>
         </form>
@@ -219,12 +240,12 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
   );
 };
 
-// --- ОСНОВНОЙ КОМПОНЕНТ ---
+// --- ГЛАВНОЕ ПРИЛОЖЕНИЕ ---
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('rf_v6');
+    const saved = localStorage.getItem('rf_inventory_v7');
     if (saved) {
       try { setProducts(JSON.parse(saved)); } catch (e) {}
     }
@@ -232,34 +253,55 @@ const App: React.FC = () => {
 
   const handleData = (data: Product[]) => {
     setProducts(data);
-    localStorage.setItem('rf_v6', JSON.stringify(data));
+    localStorage.setItem('rf_inventory_v7', JSON.stringify(data));
+  };
+
+  const clearData = () => {
+    if (confirm("Удалить текущую базу данных?")) {
+      setProducts([]);
+      localStorage.removeItem('rf_inventory_v7');
+    }
   };
 
   return (
-    <div className="w-full max-w-md h-screen sm:h-[700px] bg-slate-950 flex flex-col sm:rounded-3xl overflow-hidden border border-slate-800 shadow-2xl">
-      <header className="px-6 py-4 border-b border-white/5 flex justify-between items-center">
-        <h1 className="text-lg font-bold text-white tracking-tight">RICH <span className="text-[#D4AF37]">FLAVOUR</span></h1>
-        {products.length > 0 && (
-          <button onClick={() => { setProducts([]); localStorage.removeItem('rf_v6'); }} className="text-slate-600 hover:text-red-400">
-            <Trash2 size={16} />
-          </button>
-        )}
-      </header>
-
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {products.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-            <Sparkles className="text-[#D4AF37] mb-4" size={32} />
-            <h2 className="text-white mb-6">Загрузите прайс-лист</h2>
-            <ExcelUploader onDataLoaded={handleData} />
-            <div className="mt-8 text-[8px] text-slate-700 uppercase tracking-widest flex items-center gap-1">
-              <ShieldCheck size={10} /> Secure Concierge Engine
-            </div>
+    <div className="flex items-center justify-center min-h-screen bg-[#020617] p-0 sm:p-4 w-full">
+      <div className="w-full max-w-md h-screen sm:h-[850px] bg-slate-950 flex flex-col shadow-2xl relative sm:rounded-[3rem] overflow-hidden border border-slate-800/50">
+        <header className="px-6 py-5 flex justify-between items-center bg-slate-950/50 backdrop-blur-md border-b border-white/5 z-20">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-[0.3em] text-[#D4AF37] uppercase">Concierge AI</span>
+            <h1 className="text-xl font-extrabold tracking-tighter text-white">
+              RICH <span className="text-[#D4AF37]">FLAVOUR</span>
+            </h1>
           </div>
-        ) : (
-          <ChatInterface products={products} />
-        )}
-      </main>
+          {products.length > 0 && (
+            <button onClick={clearData} className="p-2 text-slate-600 hover:text-red-400 transition-colors">
+              <Trash2 size={18} />
+            </button>
+          )}
+        </header>
+
+        <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900">
+          {products.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+              <div className="w-24 h-24 mb-8 relative">
+                <div className="absolute inset-0 bg-[#D4AF37]/10 blur-3xl rounded-full animate-pulse"></div>
+                <div className="relative flex items-center justify-center w-full h-full border border-[#D4AF37]/20 rounded-full bg-slate-900/50">
+                  <Sparkles className="text-[#D4AF37]" size={40} />
+                </div>
+              </div>
+              <h2 className="text-2xl font-light text-white mb-3">Готов к работе</h2>
+              <p className="text-slate-500 text-sm mb-12 leading-relaxed max-w-[240px]">Загрузите ваш прайс-лист Excel, чтобы активировать интеллект консьержа.</p>
+              <ExcelUploader onDataLoaded={handleData} />
+              <div className="mt-16 flex items-center gap-2 text-[10px] text-slate-600 uppercase tracking-widest font-bold">
+                <ShieldCheck size={12} className="text-[#D4AF37]" />
+                Secure Concierge Engine v1.5
+              </div>
+            </div>
+          ) : (
+            <ChatInterface products={products} />
+          )}
+        </main>
+      </div>
     </div>
   );
 };
