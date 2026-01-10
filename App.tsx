@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { SmartChatBot } from './components/SmartChatBot';
 import { ExcelUploader } from './components/ExcelUploader';
 import { Product } from './types';
-import { Sparkles, Trash2, ShieldCheck } from 'lucide-react';
+import { Sparkles, Trash2, ShieldCheck, AlertCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const hasApiKey = !!process.env.API_KEY;
 
   useEffect(() => {
     const saved = localStorage.getItem('rich_flavour_inventory');
@@ -32,7 +33,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#020617] p-0 sm:p-4">
-      <div className="w-full max-w-md h-screen sm:h-[850px] bg-slate-950 flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] relative sm:rounded-[3rem] overflow-hidden border border-slate-800/50">
+      <div className="w-full max-w-md h-screen sm:h-[850px] bg-slate-950 flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.8)] relative sm:rounded-[3rem] overflow-hidden border border-slate-800/50">
         
         {/* Header */}
         <header className="px-6 py-5 flex justify-between items-center bg-slate-950/50 backdrop-blur-md border-b border-white/5 z-20">
@@ -54,6 +55,14 @@ const App: React.FC = () => {
           )}
         </header>
 
+        {/* API Key Alert if missing */}
+        {!hasApiKey && (
+          <div className="bg-red-500/10 border-b border-red-500/20 p-3 flex items-center gap-3 text-[11px] text-red-400">
+            <AlertCircle size={14} />
+            Ключ API не обнаружен в окружении. Бот будет работать в демо-режиме.
+          </div>
+        )}
+
         {/* Content */}
         <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900">
           {products.length === 0 ? (
@@ -64,15 +73,15 @@ const App: React.FC = () => {
                   <Sparkles className="text-[#D4AF37]" size={40} />
                 </div>
               </div>
-              <h2 className="text-2xl font-light text-white mb-3">Система не инициализирована</h2>
+              <h2 className="text-2xl font-light text-white mb-3">Добро пожаловать</h2>
               <p className="text-slate-400 text-sm mb-10 leading-relaxed font-light">
-                Пожалуйста, загрузите актуальный прайс-лист в формате Excel для активации ИИ-консультанта.
+                Для активации AI-консьержа загрузите актуальный прайс-лист в формате Excel.
               </p>
               <ExcelUploader onDataLoaded={handleData} />
               
               <div className="mt-12 flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest">
                 <ShieldCheck size={12} className="text-[#D4AF37]" />
-                Secure Data Processing
+                Secure Concierge Engine
               </div>
             </div>
           ) : (
