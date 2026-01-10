@@ -26,12 +26,16 @@ const queryGemini = async (
   products: Product[], 
   history: { role: MessageRole; content: string }[] = []
 ): Promise<string> => {
+  // Получаем API ключ из переменных окружения
   const apiKey = process.env.API_KEY;
-  if (!apiKey) return "Системная ошибка: API ключ не настроен в окружении Netlify.";
+  if (!apiKey || apiKey === "undefined") {
+    return "Системная ошибка: API ключ не настроен. Пожалуйста, установите переменную API_KEY в панели управления Netlify.";
+  }
 
   const ai = new GoogleGenAI({ apiKey });
   
   const q = prompt.toLowerCase();
+  // Поиск релевантных товаров (умный фильтр)
   const matches = products.filter(p => 
     p.brand.toLowerCase().includes(q) || 
     p.name.toLowerCase().includes(q) ||
@@ -46,7 +50,7 @@ const queryGemini = async (
     Ты — VIP-консьерж элитного парфюмерного дома "RICH FLAVOUR". 
     Твоя задача: помогать клиентам находить информацию о товарах и ценах из прайс-листа.
     
-    ДАННЫЕ ИЗ КАТАЛОГА:
+    ДАННЫЕ ИЗ ТВОЕГО КАТАЛОГА:
     ${context}
     
     ПРАВИЛА ОБЩЕНИЯ:
@@ -74,8 +78,8 @@ const queryGemini = async (
     });
     return response.text || "Извините, я не смог сформировать ответ. Попробуйте уточнить запрос.";
   } catch (err) {
-    console.error(err);
-    return "Произошла техническая заминка при обращении к ИИ.";
+    console.error("AI Error:", err);
+    return "Произошла техническая заминка при обращении к ИИ. Пожалуйста, попробуйте позже.";
   }
 };
 
@@ -113,7 +117,7 @@ const ExcelUploader: React.FC<{ onDataLoaded: (data: Product[]) => void }> = ({ 
         setSuccess(true);
         setTimeout(() => { onDataLoaded(products); setLoading(false); }, 1000);
       } catch (err) {
-        alert("Ошибка при чтении файла. Используйте .xlsx");
+        alert("Ошибка при чтении файла. Убедитесь, что это Excel (.xlsx)");
         setLoading(false);
       }
     };
@@ -130,7 +134,7 @@ const ExcelUploader: React.FC<{ onDataLoaded: (data: Product[]) => void }> = ({ 
         <div className="flex flex-col items-center">
           <FileUp className="text-slate-600 mb-3" size={32} />
           <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Загрузить прайс-лист</span>
-          <span className="text-[9px] text-slate-700 mt-1 uppercase">Excel (xlsx)</span>
+          <span className="text-[9px] text-slate-700 mt-1 uppercase">Excel (xlsx, xls)</span>
         </div>
       )}
       <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFile} disabled={loading || success} />
@@ -143,14 +147,15 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([{ 
     id: 'welcome', 
     role: 'assistant', 
-    content: 'Приветствую. База данных обновлена. Какой бренд или аромат вас интересует сегодня?', 
+    content: 'Приветствую. База данных успешно импортирована. Какой бренд или аромат вас интересует сегодня?', 
     timestamp: new Date() 
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const brands = Array.from(new Set(products.map(p => p.brand))).slice(0, 15);
+  // Уникальные бренды для быстрых кнопок
+  const brands = Array.from(new Set(products.map(p => p.brand))).filter(b => b !== 'N/A').slice(0, 15);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -177,6 +182,7 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-950/20">
+      {/* Быстрые бренды */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-white/5 bg-slate-900/20">
         {brands.map(b => (
           <button 
@@ -189,6 +195,7 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
         ))}
       </div>
 
+      {/* Сообщения */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar chat-scroll">
         {messages.map(m => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
@@ -210,11 +217,12 @@ const ChatInterface: React.FC<{ products: Product[] }> = ({ products }) => {
             <div className="w-8 h-8 rounded-full bg-slate-900 border border-[#D4AF37]/20 flex items-center justify-center">
               <Loader2 size={14} className="text-[#D4AF37] animate-spin" />
             </div>
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em]">Поиск по базе...</span>
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em]">Поиск в базе...</span>
           </div>
         )}
       </div>
 
+      {/* Ввод */}
       <div className="p-4 bg-slate-950/80 border-t border-white/5 backdrop-blur-xl">
         <form onSubmit={e => { e.preventDefault(); onSend(input); }} className="flex gap-2 bg-slate-800/50 rounded-2xl px-4 py-1 items-center border border-white/5 focus-within:border-[#D4AF37]/30 transition-all shadow-inner">
           <Search size={18} className="text-slate-600" />
@@ -242,30 +250,37 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('rf_inventory_v3');
+    const saved = localStorage.getItem('rf_inventory_v4');
     if (saved) {
-      try { setProducts(JSON.parse(saved)); } catch (e) { console.error("Load error"); }
+      try { 
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setProducts(parsed);
+      } catch (e) { 
+        console.error("Storage load error"); 
+      }
     }
   }, []);
 
   const handleData = (data: Product[]) => {
     setProducts(data);
-    localStorage.setItem('rf_inventory_v3', JSON.stringify(data));
+    localStorage.setItem('rf_inventory_v4', JSON.stringify(data));
   };
 
   const clearData = () => {
-    if (confirm("Удалить текущую базу данных?")) {
+    if (confirm("Вы уверены, что хотите удалить текущую базу данных?")) {
       setProducts([]);
-      localStorage.removeItem('rf_inventory_v3');
+      localStorage.removeItem('rf_inventory_v4');
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#020617] p-0 sm:p-4">
+    <div className="flex items-center justify-center min-h-screen bg-[#020617] p-0 sm:p-4 w-full">
       <div className="w-full max-w-md h-screen sm:h-[850px] bg-slate-950 flex flex-col shadow-2xl relative sm:rounded-[3rem] overflow-hidden border border-slate-800/50">
+        
+        {/* Хедер */}
         <header className="px-6 py-5 flex justify-between items-center bg-slate-950/50 backdrop-blur-md border-b border-white/5 z-20">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold tracking-[0.3em] text-[#D4AF37] uppercase">Concierge AI</span>
+            <span className="text-[10px] font-bold tracking-[0.3em] text-[#D4AF37] uppercase">Concierge Service</span>
             <h1 className="text-xl font-extrabold tracking-tighter text-white">
               RICH <span className="text-[#D4AF37]">FLAVOUR</span>
             </h1>
@@ -277,21 +292,24 @@ const App: React.FC = () => {
           )}
         </header>
 
+        {/* Основной контент */}
         <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900">
           {products.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
-              <div className="w-20 h-20 mb-8 relative">
-                <div className="absolute inset-0 bg-[#D4AF37]/10 blur-2xl rounded-full animate-pulse"></div>
+              <div className="w-24 h-24 mb-8 relative">
+                <div className="absolute inset-0 bg-[#D4AF37]/10 blur-3xl rounded-full animate-pulse"></div>
                 <div className="relative flex items-center justify-center w-full h-full border border-[#D4AF37]/20 rounded-full bg-slate-900/50">
-                  <Sparkles className="text-[#D4AF37]" size={32} />
+                  <Sparkles className="text-[#D4AF37]" size={40} />
                 </div>
               </div>
-              <h2 className="text-2xl font-light text-white mb-3">Готов к работе</h2>
-              <p className="text-slate-500 text-sm mb-12 leading-relaxed">Загрузите прайс-лист Excel, чтобы активировать интеллект консьержа.</p>
+              <h2 className="text-2xl font-light text-white mb-3">Добро пожаловать</h2>
+              <p className="text-slate-500 text-sm mb-12 leading-relaxed max-w-[240px]">Загрузите ваш прайс-лист Excel, чтобы активировать интеллект консьержа.</p>
+              
               <ExcelUploader onDataLoaded={handleData} />
-              <div className="mt-16 flex items-center gap-2 text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+              
+              <div className="mt-16 flex items-center gap-2 text-[10px] text-slate-600 uppercase tracking-widest font-bold">
                 <ShieldCheck size={12} className="text-[#D4AF37]" />
-                Secure Engine v1.1
+                Secure Engine v1.2
               </div>
             </div>
           ) : (
